@@ -54,8 +54,35 @@ class NetworkTrainer:
 
     # TODO 他のスクリプトと共通化する
     def generate_step_logs(
-        self, args: argparse.Namespace, current_loss, avr_loss, lr_scheduler, keys_scaled=None, mean_norm=None, maximum_norm=None
+        self, args: argparse.Namespace, current_loss, avr_loss, lr_scheduler, keys_scaled=None, mean_norm=None, maximum_norm=None,
+        total_epoch=None, batch_size=None, global_step=None, current_epoch=None, current_step=None
     ):
+        if total_epoch is not None:
+            logging_dir = args.logging_dir
+            infomation_json_file_path = os.path.join(
+                logging_dir, "status.json"
+            )
+            last_step_infomation = None
+            if os.path.exists(infomation_json_file_path):
+                with open(infomation_json_file_path, "r") as f:
+                    last_step_infomation = json.load(f)
+            infomation: dict = {
+                "total_epoch": total_epoch,
+                "batch_size": batch_size,
+                "global_step": global_step,
+                "current_epoch": current_epoch,
+                "current_step": current_step,
+                "total_step": total_epoch * batch_size,
+                "update_time": time.time(),
+                "estimated_time": None,
+                "status": 0 if global_step == 0 else (1 if global_step < total_epoch * batch_size else 2),
+            }
+            if last_step_infomation is not None:
+                time_diff = infomation["update_time"] - last_step_infomation["update_time"]
+                step_diff = infomation["global_step"] - last_step_infomation["global_step"]
+                infomation["estimated_time"] = time_diff / step_diff * (infomation["total_step"] - infomation["global_step"])
+            with open(infomation_json_file_path, "w") as f:
+                json.dump(infomation, f)
         logs = {"loss/current": current_loss, "loss/average": avr_loss}
 
         if keys_scaled is not None:
@@ -871,7 +898,8 @@ class NetworkTrainer:
                     progress_bar.set_postfix(**{**max_mean_logs, **logs})
 
                 if args.logging_dir is not None:
-                    logs = self.generate_step_logs(args, current_loss, avr_loss, lr_scheduler, keys_scaled, mean_norm, maximum_norm)
+                    logs = self.generate_step_logs(args, current_loss, avr_loss, lr_scheduler, keys_scaled, mean_norm, maximum_norm, total_epoch=num_train_epochs, batch_size=len(train_dataloader), global_step=global_step, current_epoch=current_epoch.value, current_step=step)
+                    
                     accelerator.log(logs, step=global_step)
 
                 if global_step >= args.max_train_steps:
