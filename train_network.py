@@ -72,10 +72,10 @@ class NetworkTrainer:
                 "global_step": global_step,
                 "current_epoch": current_epoch,
                 "current_step": current_step,
-                "total_step": total_epoch * batch_size,
+                "total_step": args.max_train_steps,
                 "update_time": time.time(),
                 "estimated_time": None,
-                "status": 0 if global_step == 0 else (1 if global_step < total_epoch * batch_size else 2),
+                "status": 0 if global_step == 0 else (1 if global_step < args.max_train_steps else 2),
             }
             if last_step_infomation is not None:
                 time_diff = infomation["update_time"] - last_step_infomation["update_time"]
