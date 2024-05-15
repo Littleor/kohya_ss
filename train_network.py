@@ -81,7 +81,8 @@ class NetworkTrainer:
             if last_step_infomation is not None:
                 time_diff = infomation["update_time"] - last_step_infomation["update_time"]
                 step_diff = infomation["global_step"] - last_step_infomation["global_step"]
-                infomation["estimated_time"] = time_diff / step_diff * (infomation["total_step"] - infomation["global_step"])
+                if step_diff * (infomation["total_step"] - infomation["global_step"]) != 0:
+                    infomation["estimated_time"] = time_diff / step_diff * (infomation["total_step"] - infomation["global_step"])
             with open(infomation_json_file_path, "w") as f:
                 json.dump(infomation, f)
         logs = {"loss/current": current_loss, "loss/average": avr_loss}
